@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Que dia do BBB é hoje? v3.1</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif; background:linear-gradient(to right,#f0f4f8,#d9e2ec); margin:0; padding:0; color:#333; }
+    .container{ max-width:600px; margin:60px auto; background:#fff; padding:40px; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.1);} 
+    h1{text-align:center;color:#003366;margin:0 0 16px 0;}
+    p{font-size:16px;margin:0 0 16px 0;} 
+    .center{text-align:center;} 
+    .muted{color:#666;font-size:14px;} 
+    .resultado{text-align:center;margin-top:16px;} 
+    .dia-destaque{font-size:56px;font-weight:800;color:#003366;margin:0 0 8px;} 
+    .semana{font-size:22px;color:#003366;margin:0 0 6px;} 
+    .faltam{font-size:14px;color:#444;} 
+    .aviso{text-align:center;color:#a33;font-weight:600;margin-top:12px;} 
+    .separator{display:flex;justify-content:center;margin:24px 0;} 
+    .separator .line{width:60%;border-top:1px solid #cfd8e3;} 
+    .subtitulo{text-align:center;font-weight:700;color:#003366;margin-top:12px;} 
+    .controls{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin:12px 0;} 
+    input[type=date]{padding:8px;font-size:16px;border:1px solid #ccc;border-radius:6px;} 
+    button{padding:10px 20px;font-size:16px;background:#0055a5;color:white;border:none;border-radius:6px;cursor:pointer;} 
+    button:hover{background:#003f7f;} 
+    .footer{text-align:right;font-size:12px;font-style:italic;color:#666;margin-top:36px;} 
+    .light{color:#555;font-weight:300;} 
+  </style>
+</head>
+<body>
+<div class="container">
+
+<h1>Que dia do BBB é hoje?</h1>
+
+<p class="center" id="introTexto">
+  Calcula as datas da temporada a partir do início em 12/01/2026 até a final em 21/04/2026.
+  Hoje, <strong id="dataHojeBr"></strong>, é o...
+</p>
+
+<div class="resultado" id="resultadoHoje"></div>
+<div class="aviso" id="avisoHoje"></div>
+
+<div class="separator"><div class="line"></div></div>
+
+<p class="subtitulo">Calcular para outra data</p>
+<p class="muted center">Escolha qualquer dia para ver em que dia desta temporada ele cai.</p>
+
+<div class="controls">
+  <input type="date" id="dataTeste" aria-label="Escolher data para simulação" />
+  <button id="btnCalcular">Calcular</button>
+  <button id="btnHoje">Usar hoje</button>
+</div>
+
+<div class="resultado" id="resultadoOutraData"></div>
+<div class="aviso" id="avisoOutra"></div>
+
+<div class="footer">precisa de ajuda? <a href="https://api.whatsapp.com/send?phone=5511944783614" target="_blank">fala com o caio!</a></div>
+
+</div>
+
+<script>
+const INICIO = new Date(Date.UTC(2026,0,12));
+const FINAL  = new Date(Date.UTC(2026,3,21));
+
+function toUTCDateOnly(d){return new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate()));}
+function parseDateInput(v){const[a,b,c]=v.split('-').map(Number);return new Date(Date.UTC(a,b-1,c));}
+function diffDaysInclusive(a,b){return Math.floor((toUTCDateOnly(b)-toUTCDateOnly(a))/86400000)+1;}
+function semanaDoDia(d){return `${Math.ceil(d/7)}ª semana`;}
+function faltamDiasParaFinal(d){return Math.max(0,Math.floor((toUTCDateOnly(FINAL)-toUTCDateOnly(d))/86400000));}
+function formatBR(d){return String(d.getUTCDate()).padStart(2,'0')+'/'+String(d.getUTCMonth()+1).padStart(2,'0')+'/'+d.getUTCFullYear();}
+function formatBRddmm(d){return String(d.getUTCDate()).padStart(2,'0')+'/'+String(d.getUTCMonth()+1).padStart(2,'0');}
+
+function formatarBlocoDia(dia,semana,faltam){return `
+<div class='dia-destaque'>Dia ${dia}</div>
+<div class='semana'>${semana}</div>
+<div class='faltam'>Faltam ${faltam} dias para a final</div>`;}
+
+function mostrarAviso(id,msg){document.getElementById(id).textContent=msg||'';}
+
+function calcularHoje(){
+  const hoje=toUTCDateOnly(new Date());
+  document.getElementById('dataHojeBr').textContent=formatBR(hoje);
+  let res=document.getElementById('resultadoHoje');
+  mostrarAviso('avisoHoje','');
+
+  if(hoje<INICIO){res.innerHTML='';mostrarAviso('avisoHoje','O programa ainda não começou.');return;}
+  if(hoje>FINAL){res.innerHTML='';mostrarAviso('avisoHoje','O programa já terminou.');return;}
+
+  const dia=diffDaysInclusive(INICIO,hoje);
+  const semana=semanaDoDia(dia);
+  const faltam=faltamDiasParaFinal(hoje);
+  res.innerHTML=formatarBlocoDia(dia,semana,faltam);
+
+  document.getElementById('dataTeste').value=new Date(Date.UTC(hoje.getUTCFullYear(),hoje.getUTCMonth(),hoje.getUTCDate())).toISOString().slice(0,10);
+}
+
+function calcularOutraData(value){
+ const res=document.getElementById('resultadoOutraData');
+ mostrarAviso('avisoOutra','');
+ res.innerHTML='';
+ if(!value)return;
+ const hoje=toUTCDateOnly(new Date());
+ const alvo=parseDateInput(value);
+ if(isNaN(alvo)){mostrarAviso('avisoOutra','Data inválida.');return;}
+ let tempo='é'; if(alvo<hoje)tempo='foi'; else if(alvo>hoje)tempo='será';
+ if(alvo<INICIO){res.innerHTML=`<p class='muted'><strong>${formatBRddmm(alvo)}</strong> ${tempo} antes do início do programa.</p>`;return;}
+ if(alvo>FINAL){res.innerHTML=`<p class='muted'><strong>${formatBRddmm(alvo)}</strong> ${tempo} após a final do programa.</p>`;return;}
+ const dia=diffDaysInclusive(INICIO,alvo);
+ res.innerHTML=`<p class='center'><strong>${formatBRddmm(alvo)}</strong> <span class='normal'>${tempo} o dia <strong>${dia}</strong> do programa</span></p>`;
+}
+
+document.getElementById('btnCalcular').addEventListener('click',()=>{
+  calcularOutraData(document.getElementById('dataTeste').value);
+});
+
+document.getElementById('dataTeste').addEventListener('change',(e)=>{
+  calcularOutraData(e.target.value);
+});
+
+document.getElementById('btnHoje').addEventListener('click',()=>{
+ document.getElementById('resultadoOutraData').innerHTML='';
+ mostrarAviso('avisoOutra','');
+ calcularHoje();
+});
+
+window.addEventListener('DOMContentLoaded',calcularHoje);
+</script>
+
+</body>
+</html>
